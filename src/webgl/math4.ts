@@ -209,6 +209,21 @@ export class Mat4 {
     ])
   }
 
+  static orthoNO = (left: number, right: number, bottom: number, top: number, near: number, far: number) => {
+
+    let lr = 1 / (left - right)
+    let bt = 1 / (bottom - top)
+    let nf = 1 / (near - far)
+
+    return new Mat4([
+      -2 * lr, 0, 0, 0,
+      0,       -2 * bt, 0, 0,
+      0, 0, 2 * nf, 0, 
+      (left + right) * lr, (top + bottom) * bt, (far + near) * nf, 1
+    ])
+  }
+
+
   static perspective = (fov: number, aspect: number, near: number, far: number) => {
 
     const f = Math.tan(Math.PI * 0.5 - 0.5 * fov)

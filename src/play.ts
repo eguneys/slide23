@@ -277,7 +277,9 @@ export default class AllPlays extends PlayMakes {
   }
   _draw() {
 
-    this.g.texture(0xcccccc, 0, 0, 0, 0, 0, 100, 2000, 2000, 0, 0, 256, 120, 1024, 1024)
+    this.g.texture(0xcccccc, 0, 0, 0, 
+                   1080/2, 1920/2, 0, 
+                   1080, 1920, 1600, 0, 100, 100, 2048, 2048)
 
     this.z_objects.forEach(_ => _.draw())
   }

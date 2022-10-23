@@ -12,7 +12,9 @@ export class Camera  {
     return this.p_matrix.mul(this.v_matrix)
   }
 
-  p_matrix = Mat4.perspective_from_frust(Math.PI*0.4, 16/9, 10, 1000)
+  //p_matrix = Mat4.perspective_from_frust(Math.PI*0.4, 16/9, 10, 1000)
+
+  p_matrix = Mat4.orthoNO(0, 1080, 1920, 0, 0, 100)
 
   get c_matrix() {
     return Mat4.lookAt(this.o, this.l, Vec3.up)

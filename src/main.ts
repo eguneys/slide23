@@ -20,7 +20,7 @@ function start(element: HTMLElement, images: Array<HTMLImageElement>) {
 
   let p = new Play(_ctx).init()
 
-  g.init(0x774360, images)
+  g.init(0x000000, images)
 
   loop(dt => {
 
