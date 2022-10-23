@@ -9,8 +9,12 @@
     "lint": "tsc --noEmit --watch"
   },
   "devDependencies": {
+    "@types/p2": "^0.7.40",
     "typescript": "^4.6.4",
     "vite": "^3.1.0",
     "vite-plugin-glsl": "^0.5.3"
+  },
+  "dependencies": {
+    "p2": "^0.7.1"
   }
 }

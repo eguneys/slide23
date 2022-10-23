@@ -4,6 +4,7 @@ import { loop } from './debug'
 import { Camera, Canvas, Graphics, Batcher } from './webgl'
 import { Vec3 } from './webgl/math4'
 import Play from './play'
+import { Ref, onScrollHandlers } from './ref'
 
 function start(element: HTMLElement, images: Array<HTMLImageElement>) {
   let c = new Camera(Vec3.zero, Vec3.zero)
@@ -13,9 +14,16 @@ function start(element: HTMLElement, images: Array<HTMLImageElement>) {
 
   let g = new Batcher(graphics)
 
+  let ref = Ref.make(element)
+
+  onScrollHandlers(() => {
+    ref.$clear_bounds()
+  })
+
   let _ctx = {
     c,
-    g
+    g,
+    ref
   }
 
   let p = new Play(_ctx).init()

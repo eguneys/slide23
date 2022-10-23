@@ -1,5 +1,9 @@
 import { Batcher, Camera } from './webgl'
+import { Vec3 } from './webgl/math4'
 import { Vec2, Rectangle } from './vec2'
+import { Board as PBoard } from './board'
+import { make_drag } from './drag'
+import { Ref } from './ref'
 
 export type RNG = () => number
 
@@ -12,8 +16,7 @@ const make_random = (seed = 1) => {
 }
 const random = make_random()
 
-let v_screen = Vec2.make(1920, 1080)
-let r_screen = Rectangle.make(0, 0, 1920, 1080)
+let v_screen = Vec2.make(1080, 1920)
 
 function rnd_angle(rng: RNG = random) {
     return rng() * Math.PI * 2
@@ -75,6 +78,7 @@ const on_interval_lee = (t: number, life: number, life0: number, lee: Array<numb
 
 abstract class Play {
 
+  get ref() { return this.ctx.ref } 
   get c() { return this.ctx.c }
   get g() { return this.ctx.g }
 
@@ -124,7 +128,8 @@ abstract class Play {
 
 export type Context = {
   c: Camera,
-  g: Batcher
+  g: Batcher,
+  ref: Ref
 }
 export type MakeCtor = any
 
@@ -195,8 +200,8 @@ abstract class PlayMakes extends Play {
 
 abstract class WithPlays extends PlayMakes {
 
-  make(...args: Array<any>) {
-    this.plays.make(...args)
+  make(Ctor: any, data: any = {}, delay: number = 0, repeat: number = 1) {
+    this.plays.make(Ctor, data, delay, repeat)
   }
 
   get alive() {
@@ -239,6 +244,100 @@ abstract class WithPlays extends PlayMakes {
   _dispose(_: string) {}
 }
 
+class Board extends WithPlays {
+
+  board!: PBoard
+
+  _drag_particle?: Vec3
+
+  _init() {
+    this.board = new PBoard()._init()
+
+    let self = this
+
+    make_drag({
+      on_drag(e) {
+        self.board.on_drag()
+
+        if (e.m) {
+          let _o = self.ref.get_normal_at_abs_pos(e.e).mul(v_screen)
+          let o = self.ref.get_normal_at_abs_pos(e.m).mul(v_screen)
+
+          if (self._drag_particle) {
+            self._drag_particle = Vec3.make(o.x, o.y, 0)
+          } else {
+            self.board.on_hit_test(_o.vs)
+            self._drag_particle = Vec3.make(o.x, o.y, 0)
+          }
+        }
+      },
+      on_up() {
+        self.board.on_up()
+        self._drag_particle = undefined
+      }
+
+    }, this.ref.$_)
+
+  }
+
+  _update(dt: number) {
+
+    if (this._drag_particle) {
+      this.board._update_drag_particle(this._drag_particle.vs)
+    }
+    this.board.update(dt)
+  }
+
+  _draw() {
+
+    this.g.texture(0xcccccc, 0, 0, 0, 
+                   540, 940, -80, 
+                   1000, 1000, 1664, 0, 1, 1, 2048, 2048)
+
+
+
+    this.board.infos.forEach((_, i) => {
+
+      let { char, color, body, bounding_box} = _
+
+      let [x, y] = body.interpolatedPosition
+
+      let w = bounding_box.w
+      let h = bounding_box.h
+      x += bounding_box.x
+      y += bounding_box.y
+      let v = Vec2.make(x, y)
+      let s = Vec2.make(w, h)
+
+      let _r = 180
+      let z = 0
+
+      if (char === '#') {
+
+      this.g.texture(0xcccccc, 0, 0, 0, 
+                     v.x+_r/4, v.y+_r/4, z,
+                     _r/2, _r/2, 1712, 0, 1, 1, 2048, 2048)
+                     return
+      }
+
+      let is = 0
+
+      if (char === 'l') {
+        is = 1
+      }
+      if (char === 'n') {
+        is = 2
+      }
+      if (char === 'g') {
+        is = 3
+      }
+
+      this.g.texture(0xcccccc, 0, 0, 0, 
+                     v.x+_r/2, v.y+_r/2, z,
+                     _r, _r, 320*is, 0, 320, 320, 2048, 2048)
+    })
+  }
+}
 
 export default class AllPlays extends PlayMakes {
 
@@ -247,7 +346,8 @@ export default class AllPlays extends PlayMakes {
   }
 
   one(Ctor: any, o: Array<PlayMakes> = this.objects) {
-    return o.findLast((_: any) => _ instanceof Ctor)
+    // TODO remove any
+    return (o as any).findLast((_: any) => _ instanceof Ctor)
   }
 
   tag(Ctor: any, tag: string, o = this.objects) {
@@ -270,6 +370,9 @@ export default class AllPlays extends PlayMakes {
 
     this.objects = []
     this.ui = []
+
+
+    this.make(Board)
   }
 
   _update(dt: number) {
@@ -278,9 +381,8 @@ export default class AllPlays extends PlayMakes {
   _draw() {
 
     this.g.texture(0xcccccc, 0, 0, 0, 
-                   1080/2, 1920/2, 0, 
-                   1080, 1920, 1600, 0, 100, 100, 2048, 2048)
-
+                   1080/2, 1920/2, -90, 
+                   1080, 1920, 1600, 0, 1, 1, 2048, 2048)
     this.z_objects.forEach(_ => _.draw())
   }
 }
