@@ -1,9 +1,15 @@
 import { Batcher, Camera } from './webgl'
 import { Vec3 } from './webgl/math4'
 import { Vec2, Rectangle } from './vec2'
-import { Board as PBoard } from './board'
 import { make_drag } from './drag'
 import { Ref } from './ref'
+import { DragStateType, DragPiece } from './drag_piece'
+import { Grid, Body } from './grid'
+import { GridBuilder } from './builder'
+import { Shake2 } from './shake'
+
+
+let v_off = Vec2.make(540, 740).sub(Vec2.make(500, 500))
 
 export type RNG = () => number
 
@@ -244,20 +250,203 @@ abstract class WithPlays extends PlayMakes {
   _dispose(_: string) {}
 }
 
+
+let fen2 = `
+# ########
+  #nno.o.#
+  #logglo#
+  #logglo#
+  ###.####
+`
+
+
 class Board extends WithPlays {
+
+
+  _drag_body: Body | undefined
+  _drag_o: Vec2 | undefined
+  _drag_shake: Shake2 | undefined
+  _drag_move: Vec2 | undefined
+  _drag_move_grid: Grid | undefined
+
+  _drag!: DragPiece
+  grid!: GridBuilder
+
+
 
   _init() {
 
+    let _self = this
+
+    _self.grid = GridBuilder.from_fen(fen2.trim())
+    _self._drag = new DragPiece(this.ref.$_, {
+      on_pass() {
+        if (_self._drag_move_grid) {
+          _self._drag_move = Vec2.zero
+          _self.grid = _self.grid.with_grid(_self._drag_move_grid)
+
+
+          _self._pass_check()
+
+
+        }
+      },
+      on_test_move_(dir: Vec2) {
+        _self._drag_move_grid = _self.grid.grid.move_(dir, _self._drag_body!)
+        return !!_self._drag_move_grid
+      },
+      on_test_drag(v: Vec2) {
+        _self._drag_body = _self.grid.grid.on(v)
+        return (!!_self._drag_body)
+      },
+      on_begin(type: DragStateType, o: Vec2) {
+        _self._drag_o = o
+      },
+      on_move(x: number, y: number) {
+        _self._drag_move = Vec2.make(x, y)
+      },
+      on_shake(s: Shake2) {
+        _self._drag_shake = s
+      }, 
+      on_end() {
+        _self._drag_body = undefined
+        _self._drag_o = undefined
+        _self._drag_shake = undefined
+        _self._drag_move = undefined
+      }
+    })
+
+  }
+
+  _ok: boolean = false
+  _pass_check() {
+
+    if (this._ok) {
+      return
+    }
+    this.grid.bodies.forEach(([info, body_on_world]) => {
+      if (info.char === 'n' && info.o.key === Vec2.make(7, 1).key) {
+        this._ok = true
+        alert('you win')
+      }
+    })
   }
 
   _update(dt: number) {
+    this._drag._update(dt)
   }
 
   _draw() {
 
     this.g.texture(0xcccccc, 0, 0, 0, 
                    540, 740, -80, 
-                   1000, 1000, 1664, 0, 1, 1, 2048, 2048)
+                   1000, 1000, 384, 16, 1, 1, 2048, 2048)
+
+
+    let x = v_off.x + 7 * 100,
+      y = v_off.y + 1 * 100
+    this.g.texture(0xcccccc, 0, 0, 0,
+                   x + 50, y + 50, -80,
+                   100, 100, 288, 32, 32, 32, 2048, 2048)
+    x += 100
+    this.g.texture(0xcccccc, 0, 0, 0,
+                   x + 50, y + 50, -80,
+                   100, 100, 288, 32, 32, 32, 2048, 2048)
+
+
+
+
+    this.grid.bodies.forEach(([info, body_on_world]) => {
+      if (info.body === this._drag_body) { return }
+
+      let x = 40 + 50 + info.o.x * 100,
+        y = 240 + 50 + info.o.y * 100
+
+      switch (info.char) {
+        case '#':
+          this.g.texture(0xcccccc, 0, 0, 0,
+                         x, y, -80,
+                         100, 100, 16, 80, 32, 32, 2048, 2048)
+          break
+        case 'o':
+          this.g.texture(0xcccccc, 0, 0, 0,
+                         x, y, -80,
+                         100, 100, 16, 32, 32, 32, 2048, 2048)
+          break
+          case 'l':
+            this.g.texture(0xcccccc, 0, 0, 0,
+                         x, y + 50, -80,
+                         100, 200, 64, 32, 32, 64, 2048, 2048)
+
+            break
+            case 'n':
+              this.g.texture(0xcccccc, 0, 0, 0,
+                         x + 50, y, -80,
+                         200, 100, 112, 32, 64, 32, 2048, 2048)
+              break
+              case 'g':
+              this.g.texture(0xcccccc, 0, 0, 0,
+                         x + 50, y + 50, -80,
+                         200, 200, 192, 32, 64, 64, 2048, 2048)
+              break
+      }
+    })
+
+
+
+    if (this._drag_body) {
+
+      let [info, body_on_world] = this.grid.bodies.find(_ => _[0].body === this._drag_body)!
+
+      let _shake_r = ((this._drag_shake?.x || 0) / 100) * Math.PI
+
+      let __x = this._drag_shake?.x || 0,
+        __y = this._drag_shake?.y || 0
+
+      __x += this._drag_move?.x || 0
+      __y += this._drag_move?.y || 0
+
+      let d_off = 4
+
+      let o = info.o.scale(100).add(v_off).add(Vec2.make(50, 50))
+
+      let x = o.x + __x - d_off / 2, 
+        y = o.y + __y - d_off / 2
+
+
+      switch (info.char) {
+        case '#':
+          this.g.texture(0xcccccc, 0, 0, _shake_r,
+                         x, y, -80,
+                         100 + d_off, 100 + d_off, 16, 80, 32, 32, 2048, 2048)
+          break
+        case 'o':
+          this.g.texture(0xcccccc, 0, 0, _shake_r,
+                         x, y, -80,
+                         100 + d_off, 100 + d_off, 16, 32, 32, 32, 2048, 2048)
+          break
+          case 'l':
+            this.g.texture(0xcccccc, 0, 0, _shake_r,
+                         x, y + 50, -80,
+                         100 + d_off, 200 + d_off, 64, 32, 32, 64, 2048, 2048)
+
+            break
+            case 'n':
+              this.g.texture(0xcccccc, 0, 0, _shake_r,
+                         x + 50, y, -80,
+                         200 + d_off, 100 + d_off, 112, 32, 64, 32, 2048, 2048)
+              break
+              case 'g':
+              this.g.texture(0xcccccc, 0, 0, _shake_r,
+                         x + 50, y + 50, -80,
+                         200 + d_off, 200 + d_off, 192, 32, 64, 64, 2048, 2048)
+              break
+      }
+
+      
+    }
+
+
 
 
 
@@ -307,7 +496,7 @@ export default class AllPlays extends PlayMakes {
 
     this.g.texture(0xcccccc, 0, 0, 0, 
                    1080/2, 1920/2, -90, 
-                   1080, 1920, 1600, 0, 1, 1, 2048, 2048)
+                   1080, 1920, 400, 16, 1, 1, 2048, 2048)
     this.z_objects.forEach(_ => _.draw())
   }
 }

@@ -220,6 +220,7 @@ class DragBegin extends DragState {
 
 let v_screen = Vec2.make(1080, 1920)
 let v_world = v_screen.scale(1)
+let v_off = Vec2.make(540, 740).sub(Vec2.make(500, 500))
 
 export class DragPiece {
 
@@ -244,8 +245,8 @@ export class DragPiece {
       on_drag(e, e0) {
         if (e.m) {
           _self._is_down = true
-          let _o = ref.get_normal_at_abs_pos(e.e).mul(v_world)
-          let o = ref.get_normal_at_abs_pos(e.m).mul(v_world)
+          let _o = ref.get_normal_at_abs_pos(e.e).mul(v_world).sub(v_off)
+          let o = ref.get_normal_at_abs_pos(e.m).mul(v_world).sub(v_off)
 
           if (!_self._state) {
             let v = o.scale(1/100).floor

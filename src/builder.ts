@@ -12,6 +12,7 @@ const body_by_char: any = {
 
 export type GridItem = {
   char: string,
+  o: Vec2,
   body: Body
 }
 
@@ -50,7 +51,7 @@ export class GridBuilder {
 
       body_on_world.forEach(bw => visited.push(bw.key))
 
-      info_by_body.set(body, { body, char })
+      info_by_body.set(body, { body, o: v, char })
     }
 
     return new GridBuilder(grid, info_by_body)
@@ -64,7 +65,16 @@ export class GridBuilder {
   }
 
   with_grid(grid: Grid) {
-    return new GridBuilder(grid, this.info_by_body)
+    let info_by_body = new Map(
+      [...this.info_by_body]
+      .map(([body, info]) => {
+        return [body,
+          {
+            ...info,
+            o: grid._o_by_body.get(body)!
+          }]
+      }))
+    return new GridBuilder(grid, info_by_body)
   }
 
   constructor(readonly grid: Grid,
