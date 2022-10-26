@@ -246,96 +246,21 @@ abstract class WithPlays extends PlayMakes {
 
 class Board extends WithPlays {
 
-  board!: PBoard
-
-  _drag_particle?: Vec3
-
   _init() {
-    this.board = new PBoard()._init()
-
-    let self = this
-
-    make_drag({
-      on_drag(e) {
-        self.board.on_drag()
-
-        if (e.m) {
-          let _o = self.ref.get_normal_at_abs_pos(e.e).mul(v_screen)
-          let o = self.ref.get_normal_at_abs_pos(e.m).mul(v_screen)
-
-          if (self._drag_particle) {
-            self._drag_particle = Vec3.make(o.x, o.y, 0)
-          } else {
-            self.board.on_hit_test(_o.vs)
-            self._drag_particle = Vec3.make(o.x, o.y, 0)
-          }
-        }
-      },
-      on_up() {
-        self.board.on_up()
-        self._drag_particle = undefined
-      }
-
-    }, this.ref.$_)
 
   }
 
   _update(dt: number) {
-
-    if (this._drag_particle) {
-      this.board._update_drag_particle(this._drag_particle.vs)
-    }
-    this.board.update(dt)
   }
 
   _draw() {
 
     this.g.texture(0xcccccc, 0, 0, 0, 
-                   540, 940, -80, 
+                   540, 740, -80, 
                    1000, 1000, 1664, 0, 1, 1, 2048, 2048)
 
 
 
-    this.board.infos.forEach((_, i) => {
-
-      let { char, color, body, bounding_box} = _
-
-      let [x, y] = body.interpolatedPosition
-
-      let w = bounding_box.w
-      let h = bounding_box.h
-      x += bounding_box.x
-      y += bounding_box.y
-      let v = Vec2.make(x, y)
-      let s = Vec2.make(w, h)
-
-      let _r = 180
-      let z = 0
-
-      if (char === '#') {
-
-      this.g.texture(0xcccccc, 0, 0, 0, 
-                     v.x+_r/4, v.y+_r/4, z,
-                     _r/2, _r/2, 1712, 0, 1, 1, 2048, 2048)
-                     return
-      }
-
-      let is = 0
-
-      if (char === 'l') {
-        is = 1
-      }
-      if (char === 'n') {
-        is = 2
-      }
-      if (char === 'g') {
-        is = 3
-      }
-
-      this.g.texture(0xcccccc, 0, 0, 0, 
-                     v.x+_r/2, v.y+_r/2, z,
-                     _r, _r, 320*is, 0, 320, 320, 2048, 2048)
-    })
   }
 }
 
