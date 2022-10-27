@@ -1,8 +1,8 @@
 #version 300 es
 in vec3 aTint;
+in vec3 aType;
 in vec4 aVertexPosition;
 in vec2 aTextureCoord;
-in vec3 aType;
 uniform mat4 u_matrix;
 out vec3 vType;
 out vec3 vTint;
